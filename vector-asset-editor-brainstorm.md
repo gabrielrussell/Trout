@@ -274,29 +274,6 @@ Combining features may create emergent complexity:
 5. **Design file format** - Define working file structure
 6. **UI mockups** - Sketch interface for selected features
 
----
-
-phasizes triangular pixel aesthetic
-- Highlights symmetry as core feature
-Generic but professional vector editor name
-s on triangular grid system
- Emphasizes symmetry and sprite creation
-erences hexagonal/triangular geometry
- - Highlights component assembly system
-ple combination of pixel art and triangles
-eneric game asset creation tool
-thematical term referencing triangular faces
-* - Direct description of core features
-* - Emphasizes component system
-ort, punchy, triangle-focused
-ombines symmetry and vector editing
-Generic but clear purpose
-More abstract geometric term
-** - Descriptive of assembly system
-eviated symmetry + vector
-erences triangular tessellation
- Generic asset creation tool name
-
 ## Notes
 
 - Target: 2D top-down games
