@@ -264,14 +264,168 @@ Combining features may create emergent complexity:
 
 ---
 
+## Feature Breakdown & Dependencies
+
+### Feature 1: Core Symmetry System
+**Sub-features:**
+- 1a. Store half-geometry in data model
+- 1b. Mirror geometry at render time
+- 1c. Display mirrored (read-only) side in editor
+- 1d. Constrain editing to editable half
+
+**Dependencies:**
+- Requires: Vector path data structure
+- Enables: L/R Palette Variation (#7)
+
+**Priority:** TBD
+
+---
+
+### Feature 2: Triangular Grid Snapping System
+**Sub-features:**
+- 2a. Grid geometry/math (triangular tessellation)
+- 2b. Grid display/visualization in editor
+- 2c. Point-to-grid snapping logic
+- 2d. Power-of-2 scale selection UI
+- 2e. Hexagonal canvas boundary enforcement
+
+**Dependencies:**
+- Requires: Basic vector editing capability
+- Independent of: Rendering pipeline
+
+**Priority:** TBD
+
+---
+
+### Feature 3: Triangular Pixel Rendering
+**Sub-features:**
+- 3a. Triangular rasterization algorithm
+- 3b. Anti-aliasing for triangle edges
+- 3c. Tri-pixel scale configuration
+
+**Dependencies:**
+- Requires: Vector paths to rasterize, basic rendering pipeline
+- Works with: Any vector source (symmetry, components, etc.)
+
+**Priority:** TBD
+
+---
+
+### Feature 4: Faux 3D Lighting
+**Sub-features:**
+- 4a. Lighting gradient calculation (light direction → color gradient)
+- 4b. Z-height property and application
+- 4c. Rotation generation (6-way or 12-way)
+- 4d. Light direction configuration UI
+- 4e. Lighting application to assembled geometry
+
+**Dependencies:**
+- Requires: Basic rendering pipeline, assembled geometry
+- Independent of: Tri-pixel rendering (can apply to any rasterization)
+
+**Priority:** TBD
+
+---
+
+### Feature 5: Component/Layer Assembly System
+**Sub-features:**
+- 5a. Unit data structure (shape + children + palette)
+- 5b. Recursive tree traversal
+- 5c. Z-order rendering (list order → draw order)
+- 5d. Component library management (save/load/reference units)
+- 5e. Assembly UI (viewing/editing unit tree)
+
+**Dependencies:**
+- Requires: Basic shape rendering
+- Enables: Palette inheritance (#6, #7)
+
+**Priority:** TBD
+
+---
+
+### Feature 6: Dynamic Palette Inheritance
+**Sub-features:**
+- 6a. Palette data structure (array of color slots, some empty)
+- 6b. Tree-walking color resolution algorithm
+- 6c. Global palette (root with no empties)
+- 6d. Palette editor UI
+- 6e. Inheritance visualization in editor
+
+**Dependencies:**
+- Requires: Component tree (#5)
+- Enables: L/R Palette Variation (#7)
+
+**Priority:** TBD
+
+---
+
+### Feature 7: Left/Right Palette Variation
+**Sub-features:**
+- 7a. L/R palette slot data structure (each slot has optional left + right colors)
+- 7b. Determine left/right regions from symmetry axis
+- 7c. Tree-walking for L/R color resolution (left first, fallback to right)
+- 7d. L/R palette editor UI
+
+**Dependencies:**
+- Requires: Symmetry (#1), Palette inheritance (#6)
+- Enhances: Asymmetric coloring on symmetric geometry
+
+**Priority:** TBD
+
+---
+
+### Feature 8: TypeScript Rendering Library
+**Sub-features:**
+- 8a. Core vector rendering (paths → pixels)
+- 8b. PNG/WebP file generation
+- 8c. Library API design
+- 8d. Integration with editor (real-time preview)
+- 8e. Sprite sheet layout and export
+
+**Dependencies:**
+- Foundation for: Everything else
+- Must include: All other features' rendering logic
+
+**Priority:** TBD (but likely HIGHEST - this is the foundation)
+
+---
+
+## Dependency Graph
+
+```
+Foundation Layer:
+  [8. TS Rendering Library] ← EVERYTHING depends on this
+       ↓
+
+Basic Rendering:
+  [Vector paths + basic rasterization] ← needed for anything visual
+       ↓
+       ├─→ [1. Symmetry] ← can be added early, relatively simple
+       ├─→ [2. Tri Grid] ← editor-only, doesn't affect rendering
+       └─→ [3. Tri Pixels] ← rendering technique, independent
+
+Component System:
+  [5. Component Assembly]
+       ↓
+  [6. Palette Inheritance]
+       ↓
+  [7. L/R Palette Variation] ← requires both symmetry (#1) and palettes (#6)
+
+Advanced Rendering:
+  [4. Faux 3D Lighting] ← can be added late, works on assembled result
+       ├─→ Lighting gradients
+       └─→ Rotation generation
+```
+
+---
+
 ## Next Steps
 
 1. **Prioritize features** - Which are must-have vs nice-to-have?
 2. **Define MVP scope** - What is the minimum viable product?
-3. **Resolve architecture questions** - Make decisions on "?" items in compatibility matrix
-4. **Prototype core features** - Test feasibility of complex items (#4, #5)
-5. **Design file format** - Define working file structure
-6. **UI mockups** - Sketch interface for selected features
+3. **Prototype core features** - Test feasibility of complex items (#4, #5)
+4. **Design file format** - Define working file structure
+5. **UI mockups** - Sketch interface for selected features
 
 ## Notes
 
