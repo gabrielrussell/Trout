@@ -419,13 +419,73 @@ Advanced Rendering:
 
 ---
 
+## Development Phases
+
+### Phase 0: Ultra-Minimal MVP (Proof of Concept)
+**Goal**: Prove the core architecture works end-to-end
+
+**Editor:**
+- Create/edit a few vector points (simplest possible UI, or even hard-coded points)
+- No grid yet, just raw point manipulation
+
+**Renderer:**
+- Take points, mirror them across vertical axis
+- Basic rasterization (filled shapes, nothing fancy)
+- Output single PNG file
+
+**Validation**: Confirms that data → renderer → image pipeline works, and that editor can invoke renderer for preview.
+
+---
+
+### Phase 1: Make It Actually Usable
+**Goal**: Editor becomes functional for real work
+
+**Editor additions:**
+- Triangular grid (#2) with snapping
+- Basic UI for add/remove/move points on grid
+- Save/load JSON files
+- Live preview of renderer output
+
+**Renderer improvements:**
+- Better rasterization quality
+- Possibly add triangular pixels (#3) for distinctive aesthetic
+
+**Deliverable**: Can create and save simple symmetric sprites
+
+---
+
+### Phase 2: Component System
+**Goal**: Enable reusable components and composition
+
+**Features:**
+- Component tree structure (#5)
+- Basic palettes (#6) - simple colors first, no inheritance complexity yet
+- Component library (save/load/reference units)
+- UI for managing component hierarchy
+
+**Deliverable**: Can build characters from reusable parts (body, clothes, etc.)
+
+---
+
+### Phase 3: Polish & Advanced Features
+**Goal**: Add sophisticated features that enhance workflow
+
+**Features:**
+- Palette inheritance and L/R variation (#7)
+- Faux 3D lighting (#4)
+- Rotation generation
+- Sprite sheet export
+
+**Deliverable**: Full-featured tool with all planned capabilities
+
+---
+
 ## Next Steps
 
-1. **Prioritize features** - Which are must-have vs nice-to-have?
-2. **Define MVP scope** - What is the minimum viable product?
-3. **Prototype core features** - Test feasibility of complex items (#4, #5)
-4. **Design file format** - Define working file structure
-5. **UI mockups** - Sketch interface for selected features
+1. **Design Phase 0 data structures** - Define minimal JSON schema for vector paths
+2. **Prototype renderer** - Build standalone rendering function
+3. **Prototype editor** - Simplest possible UI for point editing
+4. **Integrate** - Connect editor → renderer → preview
 
 ## Notes
 
