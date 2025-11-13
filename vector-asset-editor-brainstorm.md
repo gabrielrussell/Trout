@@ -5,204 +5,203 @@ A vector-based game asset editor targeting 2D top-down games with a focus on sim
 
 ---
 
+## Architecture Overview
+
+### Core Rendering Architecture
+**TypeScript Rendering Library as Foundation**: The entire project is built around a standalone TypeScript rendering library that generates PNG/WebP files from vector data. This library is used by both:
+- The editor itself (for real-time preview)
+- Game projects (for asset generation at build time or runtime)
+
+This architectural decision ensures long-term asset accessibility and creates a clean separation between the editor UI and the rendering engine.
+
+### Data Model
+**Unit Tree Structure**: Assets are composed of recursive "units" where each unit contains:
+- Exactly one shape (a set of closed vector paths, possibly empty)
+- Zero or more child units
+- A palette (with optional empty slots for inheritance)
+- Z-ordering determined by list position (later items obscure earlier ones)
+
+**Half-Geometry Storage**: Vector paths are stored un-mirrored (only half the shape). Symmetry is applied at render time, not in the data model. This keeps working files compact and makes asymmetric coloring straightforward.
+
+### Coordinate System
+**Triangular Grid Foundation**:
+- All control points snap to a triangular/hexagonal lattice
+- Power-of-2 scaling system (base size ~2px, then 4px, 8px, 16px, etc.)
+- Hexagonal canvas boundary aligned to grid
+- Grid spacing measured in real output pixels
+- Always-on snapping (no toggle)
+
+### Color System
+**Tree-Walking Palette Inheritance**:
+- Each unit has a palette with slots that can be filled (hard-coded color) or empty (inherit from parent)
+- Color resolution walks up the unit tree to find first non-empty slot
+- Global palette at root must have all slots filled (no empties)
+- Each palette slot can have separate left/right colors for asymmetric coloring
+- Left color lookup: walk up tree for left value; if not found, walk up tree for right value
+
+### Symmetry Model
+**Render-Time Bilateral Symmetry**:
+- Fixed vertical center line (not movable/rotatable)
+- Only one symmetry axis (bilateral only, no radial)
+- Geometry is always symmetric (edit one side, both render)
+- Asymmetry achieved through color (left/right palette variation)
+
+### Rendering Pipeline
+The rendering process flows as:
+1. **Vector Construction**: Build shapes on triangular grid (construction-time only)
+2. **Component Assembly**: Resolve unit tree, all centers aligned
+3. **Symmetry Application**: Mirror geometry across vertical axis
+4. **Palette Resolution**: Walk tree to resolve all colors (including left/right)
+5. **Lighting Application**: Apply global lighting gradient (if enabled)
+6. **Tri-Pixel Rasterization**: Render to triangular pixel grid with anti-aliasing
+7. **Rotation Generation**: Create 6-way or 12-way rotated variants (if enabled)
+8. **Sprite Sheet Export**: Composite all variants into PNG/WebP sprite sheet
+
+### Editor Architecture
+**Separate Edit and Render Areas**:
+- Editing UI provides construction tools (grid-snapped vector editing, component assembly, palette management)
+- Rendering area shows live preview using the same rendering library that exports use
+- Real-time preview required for all features (no render-time-only features)
+
+### Export Strategy
+**Sprite Sheet Focus**: Export primarily or exclusively as sprite sheets (multiple assets/variants in single image file). Batch generation of all variants is likely the only export mode.
+
+---
+
 ## Feature Ideas
 
 ### 1. Core Symmetry System
-**Description:** Built-in symmetry as a fundamental feature rather than an optional tool.
+**Description:** Built-in symmetry as a fundamental feature rather than an optional tool. Symmetry is applied at render time, with only half the geometry stored and edited.
 
 **Key aspects:**
-- Default symmetrical editing (mirror across axis/axes)
-- Selective symmetry breaking for specific elements/details
-- Symmetry as default state, not just a modifier
-
-**Open questions:**
-- Is symmetry broken at object level (entire shapes) or point level (individual control points)?
-ANSWER: I think that the color asymmetry discussed elsewhere may be good enough
-- Is symmetry enforcement live/continuous or operation-based?
-ANSWER: I don't understand the question. But I'll take a stab at it. This tool will have two main products. The first is editable working files, which should contain atleast: A sets of coordinate paths describing vector paths. And some color information for the shapes. Composite unit descriptions, etc. The second is the rendered PNGs. The coordinate paths would not be stored mirrored. Only during onscreen rendering and in the rendered PNGS would the symmetry be fully relaized, and during editing only half of the shape would be editable, while the other would be visible but uneditable.
-- What is the default symmetry axis for new assets?
-ANSWER: vertical center line
+- **Vertical center line symmetry** as default for all new assets (fixed, non-rotatable)
+- **Edit one side, render both sides**: Only half of the shape is editable; the mirrored half is visible but locked during editing
+- **Storage model**: Coordinate paths stored un-mirrored in working files; symmetry applied during rendering (both on-screen preview and PNG export)
+- **Symmetry breaking**: Primarily through color asymmetry (left/right palette variation) rather than geometric breaking
+- Single bilateral symmetry only (no radial or multi-axis symmetry)
 
 ---
 
 ### 2. Triangular Grid Snapping System
-**Description:** Construction aid using triangular/hexagonal grid for control point snapping.
+**Description:** Construction aid using triangular/hexagonal grid for control point snapping. Grid snapping is always enabled.
 
 **Key aspects:**
-- Control points and vertices snap to triangular lattice
-- Facilitates easy drawing of triangles and hexagons
-- Grid-aligned geometry construction
-
-**Open questions:**
-- What is the grid scale/size?
-ANSWER: triangular grids ( tessellated triangles ) automatically align with triangular grids with side lengths that are powers of two multiples of the first grid. We'll decide on the side length of the very smallest triangle side length ( maybe 2 ) and then the choices will be powers of two multiples of that. In any case, the power of two side length will be selectable.
-- Is grid snapping always on, or toggleable?
-ANSWER: always on, I think.
-- How does grid relate to final output resolution?
-ANSWER: I think that we'll discuss side lengths in real pixels.
+- **Control points snap to triangular lattice** - facilitates easy drawing of triangles and hexagons
+- **Power-of-2 scaling system**: Base triangle side length (e.g., 2px), with selectable multiples at powers of 2 (2px, 4px, 8px, 16px, etc.)
+- **Grid alignment**: Tessellated triangular grids automatically align with each other regardless of scale level
+- **Always-on snapping**: Grid snapping cannot be disabled
+- **Hexagonal canvas boundary**: The grid defines canvas boundaries as a hexagonal shape
+- **Real pixel measurements**: Grid side lengths specified in actual output pixels
 
 ---
 
 ### 3. Triangular Pixel Rendering
-**Description:** Aesthetic style using large visible triangular "pixels" instead of square pixels.
+**Description:** Aesthetic style using large visible triangular "pixels" instead of square pixels. Creates a distinctive low-res triangular look baked into standard image formats.
 
 **Key aspects:**
-- Rasterize with chunky triangular pixel look
-- Output to standard image formats (PNG, etc.) but with tri-pixel aesthetic
-- Each "tri-pixel" rendered as multiple regular pixels forming triangle
-
-**Open questions:**
-- What is the tri-pixel size relative to output resolution?
-ANSWER: it will be one of the powers of two side lengths discussed above.
-- Do tri-pixels align with construction grid (#2) if both features are used?
-ANSWER: yes, by they may differ one or more powers of two
-- Are tri-pixels anti-aliased or hard-edged?
-ANSWER anti-aliased.
+- **Chunky tri-pixel aesthetic**: Each "tri-pixel" rendered as multiple regular pixels forming a triangle
+- **Output to standard formats**: PNG/WebP with tri-pixel look baked in (no special file format needed)
+- **Power-of-2 sizing**: Tri-pixel size uses the same power-of-2 side length system as the grid
+- **Grid alignment**: Tri-pixels align with construction grid, but may differ by one or more powers of 2 in scale
+- **Anti-aliased edges**: Tri-pixels have smooth edges rather than hard pixel boundaries
 
 ---
 
 ### 4. Faux 3D Lighting
-**Description:** Simulate dimensionality through lighting gradients across shapes.
+**Description:** Simulate dimensionality through lighting gradients across shapes. Automatically generates rotated angle variants with adjusted lighting for different viewing directions.
 
 **Key aspects:**
-- Apply light-to-dark gradient on shapes
-- Auto-generate rotated angle variants with adjusted lighting
-- Creates pseudo-3D effect for 2D sprites
-
-**Open questions:**
-- Is lighting per-shape or global across scene?
-ANSWER. Global I guess. I guess I was thinking of having a single z-access height that specified the height of just the middle.
-- How many rotation angles are generated? (4-way? 8-way? 16-way?)
-ANSWER: your question written wrong, the example answers should say (3-way, 6-way, 12-way, etc)?, but I would assume 6 way as a minimum, but 12 way might be nice for an animated effect.
-- Is angle generation automatic export or manual selection?
-ANSWER: I don't understand the question. We should likely do automatic rotation of shapes regardless of faux 3d lighting. And it would be automatic.
-- Is light direction configurable per export?
-ANSWER: sure.
+- **Global lighting**: Light direction applies across entire scene (not per-shape)
+- **Z-axis height**: Single height value specifying elevation (applied to center/middle of asset)
+- **Light-to-dark gradients**: Applied across shapes to create pseudo-3D effect
+- **Automatic rotation generation**: 6-way minimum (every 60°), with 12-way (every 30°) option for smoother animation
+- **Rotation independent of lighting**: Shape rotation should work even without faux 3D lighting enabled
+- **Configurable light direction**: Light direction can be set per export
 
 ---
 
 ### 5. Component/Layer Assembly System
-**Description:** Build reusable components and assemble them into complete characters/objects.
+**Description:** Build reusable components ("units") and assemble them into complete characters/objects using a recursive tree structure.
 
 **Key aspects:**
-- Create library of reusable components (body parts, clothing, accessories)
-- Mix and match components to create variants
-- Assemble characters from base + additions (naked character + clothing)
-
-**Open questions:**
-- Is assembly runtime (editor view, export components) or bake-in (export composite)?
-ANSWER: runtime.
-- Can components be positioned/scaled during assembly or use fixed attachment points?
-ANSWER: all components will overlaid unscaled with their positions and centers all exactly aligned.
-- How are component layers ordered/managed?
-ANSWER: I don't understand the question. I am thinking that every "unit" will have exactly one, possibly empty, shape, which is a set of closed paths. And that the unit will have 0 or more child units. The child units and the shape can be arbitrarily ordered, and order alone will dictate visibility with upper unts or shapes obscuring lower units or shapes.
-- Can components reference other components (nested assembly)?
-ANSWER: yes. Recursive.
+- **Unit structure**: Each unit contains exactly one shape (which may be empty) + zero or more child units
+- **Recursive/nested assembly**: Units can reference other units to arbitrary depth
+- **Runtime assembly**: Components assembled in editor view and during export (not baked into single geometry)
+- **Fixed positioning**: All components overlaid unscaled with centers exactly aligned (no per-component positioning/scaling)
+- **Z-ordering by list order**: Child units and shapes can be arbitrarily ordered; order alone determines visibility (later items obscure earlier ones)
+- **Library-based workflow**: Create reusable components (body parts, clothing, accessories) and mix/match to create variants
 
 ---
 
 ### 6. Dynamic Palette Inheritance
-**Description:** Components with mixed coloring - some hard-coded, some inherited from parent.
+**Description:** Color palette system with inheritance up the component tree. Enables palette-driven variants without geometry duplication.
 
 **Key aspects:**
-- Two-tier palette system: shared palette + local/unshared colors
-XXX maybe we can just have the palette have empty slots. And that when selecting empty slot colors the parents pallet slot gets used.
-- Child components inherit parent's shared palette
-- Enables palette-driven variants without geometry duplication
-- Example: trousers with fixed blue fabric but handkerchief color from parent's hair
-
-**Open questions:**
-- How many shared palette slots?
-- What happens when child is used standalone (no parent to inherit from)?
-ANSWER: maybe we make a global palette that all of the other palettes inherit from. Then disallow empty slots in the global palette.
-- Is palette inheritance visualized in editor?
-ANSWER: because palettes are seen in the editor, then yes, some amount of visualization should be seen.
-- Can shared palette be overridden at assembly time?
-ANSWER: why? I'm not sure.
+- **Empty slot inheritance**: Palettes can have empty slots; when a color is needed for an empty slot, walk up the parent tree to find the first non-empty value
+- **Global palette root**: A global palette exists at the root of the inheritance tree with no empty slots allowed (ensures all colors resolve eventually)
+- **Mixed coloring per component**: Each component can have some colors hard-coded (filled slots) and others inherited (empty slots)
+- **Tree-walk resolution**: Color lookup walks up parent chain until a filled slot is found
+- **Visualized in editor**: Palette inheritance is shown visually in the editor
+- **Example use**: Trousers with fixed blue fabric (filled slot) but handkerchief color from parent's hair color (empty slot)
 
 ---
 
 ### 7. Left/Right Palette Variation
-**Description:** Shared palette slots can have different values for left vs right side.
+**Description:** Palette slots can have different values for left vs right side of the symmetry axis, enabling asymmetric coloring on symmetric geometry.
 
 **Key aspects:**
-- Enables asymmetric coloring on symmetric geometry
-- Child components use left/right palette slots
-- Example: red left glove, blue right glove on symmetric character
-
-**Open questions:**
-- How are left/right regions defined? (automatic from symmetry axis? manual painting?)
-ANSWER: automatic from symmetry.
-- Does this apply only to shared palette or also local colors?
-ANSWER: good question. Maybe you do it like the empty color slot described above. The default color is the right color. And if there is no left color then the right color gets used. The only caveat is that you need to walk up the inheritance tree looking for a left color before defaulting to the right color, which itself might require walking up the inheritance tree.
-- Can this support more than bilateral symmetry (e.g., radial with 4+ segments)?
-ANSWER: I'm only planning on one axis of symmetry for now.
+- **Automatic region definition**: Left/right regions determined automatically by symmetry axis (no manual painting)
+- **Right-side default**: Each palette slot's "right color" is the default value
+- **Optional left override**: Palette slots can optionally specify a different "left color"
+- **Tree-walk for left colors**: When looking up left color, walk up parent tree to find first non-empty left value; if none found, walk up tree again for right value
+- **Bilateral only**: Only works with single-axis bilateral symmetry (no radial/multi-segment support)
+- **Example use**: Red left glove, blue right glove on symmetric character; symmetric geometry, asymmetric coloring
 
 ---
 
-### 8. TypeScript Vector Export
-**Description:** Export vector data and rendering code as standalone TypeScript file.
+### 8. TypeScript Rendering Library
+**Description:** Core rendering system implemented as a standalone TypeScript library that both the editor and games can use. Generates rasterized images (PNG/WebP) from vector data.
 
 **Key aspects:**
-- Self-contained executable export format
-- Includes point data, shapes, and rasterization logic
-- Human-readable and hand-editable
-- Ensures long-term asset accessibility
-- Can regenerate rasters at build time
-
-**Open questions:**
-- Does export include just final geometry or all editor features (symmetry ops, assembly, palettes)?
-ANSWER: the latter. In fact this whole feature should basically be rethought of just making a rendering library that gets used in the tool, but can also be used independently. 
-- Does rendering code implement style features (tri-pixels, lighting) or just basic vector rendering?
-ANSWER: see above
-- What rendering library/API does the TS code target (Canvas2D, WebGL, generic)?
-ANSWER: uhh, I don't understand this question. The rendering library is for producing like pngs or such. not for drawing to the screen.
-- How are external dependencies handled?
-ANSWER: how do typescript dependencies get handled normally?
+- **Architectural shift**: Not just an "export feature" - this is THE rendering library that powers the entire tool
+- **Dual usage**: Editor uses this library for real-time preview; games use it for asset generation
+- **Full feature support**: Includes all editor features (symmetry operations, component assembly, palette inheritance, tri-pixels, lighting)
+- **Image generation**: Produces PNG/WebP files (not screen rendering - actual file output)
+- **Human-readable format**: Vector data and rendering code are readable and hand-editable TypeScript
+- **Long-term accessibility**: Assets remain usable even if editor disappears
+- **Standard dependency management**: Uses normal TypeScript/npm dependency handling
 
 ---
 
-## Open Design Questions
+## Design Decisions
 
 ### Scope & Philosophy
-1. What defines "super simple" for this project? Line count? Time to implement? Feature count?
-ANSWER: mostly line count.
-2. What is the primary workflow: create many simple assets quickly, or create complex assets with fine control?
-ANSWER: more the former. Simple assets quickly.
-3. What game engines/frameworks is this targeting? (affects export format priorities)
-ANSWER: any typescript html game. I'm going to be working with Excalibur.js, but it should work outside of that as well.
+- **"Simple" means low line count**: Primary simplicity metric is keeping codebase small
+- **Workflow focus**: Create many simple assets quickly (not complex assets with fine control)
+- **Target platform**: TypeScript/HTML5 games (primary: Excalibur.js; general: any TypeScript game engine)
 
 ### Symmetry Architecture
-4. Should symmetry axis be movable/rotatable or fixed?
-ANSWER: fixed.
-5. Can multiple symmetry types exist on one asset (e.g., bilateral + radial)?
-ANSWER: no
-6. How is symmetry preserved/broken when editing components vs assembled objects?
-ANSWER: maybe just by color
+- **Fixed vertical symmetry axis**: Not movable or rotatable
+- **Single symmetry type**: Only bilateral symmetry (no radial or multi-axis)
+- **Color-based asymmetry**: Symmetry breaking primarily through left/right palette variation, not geometry
 
 ### Grid System
-7. If using triangular grid (#2), does it also define canvas boundaries/alignment?
-ANSWER: yes. Lets have a hexagonal boundary.
-8. Should there be an option for rectangular grid, or is triangular grid the only option?
-ANSWER: no
+- **Triangular grid only**: No rectangular grid option
+- **Hexagonal canvas boundary**: Grid defines canvas shape
+- **Grid-aligned editing**: Construction grid defines all geometric constraints
 
 ### Export & File Format
-9. What is the native working file format?
-ANSWER: TDB, but probably just json, right.
-10. What raster export formats are needed? (PNG, WebP, etc.)
-ANSWER: probably those two for now.
-11. Should editor support import of existing assets (SVG, PNG)?
-ANSWER: no.
-12. Is there a need for sprite sheet export (multiple assets in one image)?
-ANSWER: yes. maybe ONLY this.
+- **Working file format**: JSON (TBD exact schema)
+- **Raster formats**: PNG and WebP
+- **No import support**: Editor does not import existing SVG/PNG assets
+- **Sprite sheet focus**: Export primarily or exclusively as sprite sheets (multiple assets in one image)
 
 ### Rendering & Performance
-13. Is real-time preview of all features required, or can some be render-time only?
-ANSWER: real-time. We should be utilizing the actual rendering library to render in real time during editing. Though the editing area should be a separate from the rendering area.
-14. What is the expected asset complexity (vertex count, shape count)?
-ANSWER: dozens of units with dozens of vertexes.
-15. Should there be a batch export mode for generating all variants?
-ANSWER: maybe only this.
+- **Real-time preview required**: All features must render in real-time during editing
+- **Separate edit/render areas**: Editing UI separate from rendering preview area
+- **Rendering library-based**: Editor uses the same rendering library that exports use
+- **Expected complexity**: Dozens of units, each with dozens of vertices
+- **Batch export**: Likely the only export mode (generate all variants at once)
 
 ---
 
@@ -213,7 +212,7 @@ ANSWER: maybe only this.
 | **#1 Symmetry + #2 Tri Grid** | ✓ YES | Symmetry axis aligns to grid, triangles mirror cleanly |
 | **#1 Symmetry + #3 Tri Pixels** | ✓ YES | As long as symmetry axis aligns to pixel grid |
 | **#1 Symmetry + #4 Lighting** | ✓ YES | Symmetric shapes with symmetric lighting work naturally |
-| **#1 Symmetry + #5 Components** | ? COMPLEX | Need to define: do components have symmetry, or only assemblies? |
+| **#1 Symmetry + #5 Components** | ✓ YES | Symmetry applied at render time to final assembled result; components don't have individual symmetry |
 | **#1 Symmetry + #6 Palettes** | ✓ YES | Orthogonal concerns - symmetry is geometry, palette is color |
 | **#1 Symmetry + #7 L/R Palette** | ✓ YES | Actually synergistic - symmetric geometry, asymmetric color |
 | **#1 Symmetry + #8 TS Export** | ✓ YES | Export would include symmetry metadata or baked symmetric geometry |
@@ -222,19 +221,19 @@ ANSWER: maybe only this.
 | **#2 Tri Grid + #5 Components** | ✓ YES | Components can be grid-aligned |
 | **#2 Tri Grid + #6 Palettes** | ✓ YES | Independent systems |
 | **#2 Tri Grid + #7 L/R Palette** | ✓ YES | Independent systems |
-| **#2 Tri Grid + #8 TS Export** | ? UNCLEAR | Does export need grid metadata? Or just final geometry? |
+| **#2 Tri Grid + #8 TS Export** | ✓ YES | Grid is construction aid only; rendering library works with final vector paths |
 | **#3 Tri Pixels + #4 Lighting** | ✓ YES | Lighting gradients applied to tri-pixel regions |
 | **#3 Tri Pixels + #5 Components** | ✓ YES | Each component rasterizes with tri-pixels |
 | **#3 Tri Pixels + #6 Palettes** | ✓ YES | Tri-pixels use palette colors |
 | **#3 Tri Pixels + #7 L/R Palette** | ✓ YES | Tri-pixels use L/R palette variations |
 | **#3 Tri Pixels + #8 TS Export** | ✓ YES | TS export would include tri-pixel rasterization code |
-| **#4 Lighting + #5 Components** | ? COMPLEX | Does lighting apply per-component or to assembled whole? |
-| **#4 Lighting + #6 Palettes** | ? COMPLEX | Does lighting affect palette colors, or is it separate layer? |
+| **#4 Lighting + #5 Components** | ✓ YES | Global lighting applies to assembled whole; single z-height for entire asset |
+| **#4 Lighting + #6 Palettes** | ✓ YES | Lighting applied as separate post-process layer on top of palette-resolved colors |
 | **#4 Lighting + #7 L/R Palette** | ✓ YES | Can have different lighting on L/R sides |
-| **#4 Lighting + #8 TS Export** | ? UNCLEAR | Does export include lighting code or pre-lit rasters? |
+| **#4 Lighting + #8 TS Export** | ✓ YES | Rendering library includes full lighting implementation; can generate with different light directions |
 | **#5 Components + #6 Palettes** | ✓ YES | Components use palette system - natural integration |
 | **#5 Components + #7 L/R Palette** | ✓ YES | Components can use L/R palette slots |
-| **#5 Components + #8 TS Export** | ? COMPLEX | Does export include component assembly logic? |
+| **#5 Components + #8 TS Export** | ✓ YES | Rendering library includes full component assembly logic; runtime assembly not baked |
 | **#6 Palettes + #7 L/R Palette** | ✓ YES | #7 is extension of #6 |
 | **#6 Palettes + #8 TS Export** | ✓ YES | Export includes palette data and application logic |
 | **#7 L/R Palette + #8 TS Export** | ✓ YES | Export includes L/R palette data |
