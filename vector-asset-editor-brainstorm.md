@@ -196,6 +196,18 @@ The rendering process flows as:
 - **Use cases**: Creating hollow shapes, windows, complex silhouettes, and decorative cutouts
 - **Boolean operation**: Essentially a subtract/difference operation in traditional vector graphics terms
 
+### 11. Sprite Sheet Metadata Export
+**Description:** Export JSON documents alongside sprite sheets containing comprehensive metadata for all images including location, rotation, and composition data.
+
+**Key aspects:**
+- **Frame metadata**: Position and dimensions of each sprite in the sheet (x, y, width, height)
+- **Rotation data**: Rotation angle for each frame (for auto-generated rotation sets)
+- **Composition information**: Component hierarchy, palette data, symmetry settings
+- **Asset references**: Links between sprites and their source asset definitions
+- **Animation sequences**: Grouping of related frames (rotation sets, animation frames)
+- **Game engine integration**: Format compatible with TypeScript game engines (especially Excalibur.js)
+- **Reverse lookup**: Ability to trace rendered sprite back to its source vector definition
+
 ---
 
 ## Design Decisions
@@ -302,13 +314,14 @@ Combining features may create emergent complexity:
 6. **Negative Space Paths** (#10)
 7. **Full Palette Inheritance** (advanced version of #6)
 8. **Left/Right Palette Variation** (#7)
+9. **Sprite Sheet Metadata Export** (#11)
 
 ### Nice-to-Have
-9. **Faux 3D Lighting** (#4)
+10. **Faux 3D Lighting** (#4)
 
 ### Infrastructure (Will Get Done)
-10. **TypeScript Rendering Library** (#8)
-11. **Client-Side Web Application** (#9)
+11. **TypeScript Rendering Library** (#8)
+12. **Client-Side Web Application** (#9)
 
 ---
 
@@ -453,6 +466,26 @@ Combining features may create emergent complexity:
 
 **Priority:** MEDIUM (enhances visual possibilities without adding complexity)
 
+### Feature 11: Sprite Sheet Metadata Export
+**Sub-features:**
+- 11a. JSON schema design for metadata format
+- 11b. Frame location and dimension tracking (x, y, width, height)
+- 11c. Rotation angle metadata for each frame
+- 11d. Component hierarchy and composition data export
+- 11e. Palette information and color references
+- 11f. Animation sequence grouping (rotation sets, frame collections)
+- 11g. Source asset linking (sprite → vector definition)
+- 11h. Game engine compatibility layer (Excalibur.js format)
+
+**Dependencies:**
+- Requires: TypeScript Rendering Library (#8) for sprite sheet generation
+- Requires: Component System (#5) for composition data
+- Works with: Palette system (#6) for color metadata
+- Works with: Rotation generation (#4 lighting) if implemented
+- Independent of: Editor UI features
+
+**Priority:** MEDIUM (essential for game engine integration and workflow efficiency)
+
 ---
 
 ## Dependency Graph
@@ -476,6 +509,10 @@ Component System:
   [6. Palette Inheritance]
        ↓
   [7. L/R Palette Variation] ← requires both symmetry (#1) and palettes (#6)
+
+Export & Integration:
+  [11. Sprite Sheet Metadata] ← depends on rendering (#8) + component system (#5)
+       └─→ JSON export with frame locations, rotations, composition data
 
 Advanced Rendering:
   [4. Faux 3D Lighting] ← can be added late, works on assembled result
