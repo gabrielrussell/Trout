@@ -592,12 +592,11 @@ Advanced Rendering:
 
 ---
 
-## Next Steps
+## Project Roadmap
 
-1. **Design Phase 0 data structures** - Define minimal JSON schema for vector paths
-2. **Prototype renderer** - Build standalone rendering function
-3. **Prototype editor** - Simplest possible UI for point editing
-4. **Integrate** - Connect editor → renderer → preview
+1. **Complete Feature Document** - Finish defining all features, priorities, and architectural decisions
+2. **Produce Specification** - Create detailed technical specification from feature document
+3. **Produce Todo Document** - Break down specification into actionable development tasks
 
 ## Notes
 
