@@ -264,6 +264,27 @@ Combining features may create emergent complexity:
 
 ---
 
+## Feature Priorities
+
+### Critical (Must-Have)
+1. **Core Symmetry System** (#1)
+2. **Component/Layer Assembly System** (#5)
+3. **Basic Palettes** (simplified version of #6 - no inheritance)
+
+### Medium Priority
+4. **Triangular Grid Snapping System** (#2)
+5. **Triangular Pixel Rendering** (#3)
+
+### Nice-to-Have
+6. **Faux 3D Lighting** (#4)
+7. **Full Palette Inheritance** (advanced version of #6)
+8. **Left/Right Palette Variation** (#7)
+
+### Infrastructure (Will Get Done)
+9. **TypeScript Rendering Library** (#8)
+
+---
+
 ## Feature Breakdown & Dependencies
 
 ### Feature 1: Core Symmetry System
@@ -277,7 +298,7 @@ Combining features may create emergent complexity:
 - Requires: Vector path data structure
 - Enables: L/R Palette Variation (#7)
 
-**Priority:** TBD
+**Priority:** CRITICAL
 
 ---
 
@@ -293,7 +314,7 @@ Combining features may create emergent complexity:
 - Requires: Basic vector editing capability
 - Independent of: Rendering pipeline
 
-**Priority:** TBD
+**Priority:** MEDIUM
 
 ---
 
@@ -307,7 +328,7 @@ Combining features may create emergent complexity:
 - Requires: Vector paths to rasterize, basic rendering pipeline
 - Works with: Any vector source (symmetry, components, etc.)
 
-**Priority:** TBD
+**Priority:** MEDIUM
 
 ---
 
@@ -323,7 +344,7 @@ Combining features may create emergent complexity:
 - Requires: Basic rendering pipeline, assembled geometry
 - Independent of: Tri-pixel rendering (can apply to any rasterization)
 
-**Priority:** TBD
+**Priority:** NICE-TO-HAVE
 
 ---
 
@@ -339,7 +360,7 @@ Combining features may create emergent complexity:
 - Requires: Basic shape rendering
 - Enables: Palette inheritance (#6, #7)
 
-**Priority:** TBD
+**Priority:** CRITICAL
 
 ---
 
@@ -355,7 +376,7 @@ Combining features may create emergent complexity:
 - Requires: Component tree (#5)
 - Enables: L/R Palette Variation (#7)
 
-**Priority:** TBD
+**Priority:** CRITICAL (basic palettes only) / NICE-TO-HAVE (full inheritance)
 
 ---
 
@@ -370,7 +391,7 @@ Combining features may create emergent complexity:
 - Requires: Symmetry (#1), Palette inheritance (#6)
 - Enhances: Asymmetric coloring on symmetric geometry
 
-**Priority:** TBD
+**Priority:** NICE-TO-HAVE
 
 ---
 
@@ -386,7 +407,7 @@ Combining features may create emergent complexity:
 - Foundation for: Everything else
 - Must include: All other features' rendering logic
 
-**Priority:** TBD (but likely HIGHEST - this is the foundation)
+**Priority:** INFRASTRUCTURE (foundational - will get done)
 
 ---
 
