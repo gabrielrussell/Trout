@@ -181,6 +181,7 @@ The rendering process flows as:
 - **No server required**: All editing, rendering, and processing happens client-side
 - **Local file operations**: Uses browser APIs for file I/O (File System Access API, downloads, or local storage)
 - **Standalone deployment**: Can be hosted as static files on any web server or CDN
+- **GitHub Pages compatible**: Ideal for hosting on GitHub Pages (static site hosting)
 - **Offline capable**: Potentially works offline once loaded (Progressive Web App)
 - **Cross-platform**: Works on any device with a modern browser
 
