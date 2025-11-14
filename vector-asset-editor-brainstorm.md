@@ -228,6 +228,17 @@ The rendering process flows as:
 - **Quick start workflow**: Enables fast palette creation without manual color selection
 - **Override friendly**: Generated colors can be individually adjusted after generation
 
+### 13. Undo/Redo System
+**Description:** Editor history system allowing users to undo and redo editing actions.
+
+**Key aspects:**
+- **Action history**: Track editing operations (add/delete/modify paths, palette changes, etc.)
+- **Undo**: Step backward through history to reverse actions
+- **Redo**: Step forward through undone actions
+- **History limit**: Reasonable cap on history depth (memory management)
+- **State preservation**: Maintain undo stack during editing session
+- **Session-only**: History not persisted to file (in-memory only)
+
 ---
 
 ## Design Decisions
@@ -339,10 +350,11 @@ Combining features may create emergent complexity:
 ### Nice-to-Have
 10. **Faux 3D Lighting** (#4)
 11. **Automatic Palette Generation** (#12)
+12. **Undo/Redo System** (#13)
 
 ### Infrastructure (Will Get Done)
-12. **TypeScript Rendering Library** (#8)
-13. **Client-Side Web Application** (#9)
+13. **TypeScript Rendering Library** (#8)
+14. **Client-Side Web Application** (#9)
 
 ---
 
@@ -524,6 +536,23 @@ Combining features may create emergent complexity:
 - Independent of: All other features (standalone tool)
 
 **Priority:** NICE-TO-HAVE (workflow enhancement, not essential)
+
+### Feature 13: Undo/Redo System
+**Sub-features:**
+- 13a. Action history data structure (stack of reversible operations)
+- 13b. Command pattern implementation for all editable operations
+- 13c. Undo operation (revert last action, move to redo stack)
+- 13d. Redo operation (re-apply undone action)
+- 13e. History limit configuration (memory management)
+- 13f. UI indicators (undo/redo button states, keyboard shortcuts)
+- 13g. Clear history on file save/load
+
+**Dependencies:**
+- Requires: Editor UI framework
+- Works with: All editing operations (paths, palettes, components)
+- Independent of: Rendering system
+
+**Priority:** NICE-TO-HAVE (quality of life, not essential for MVP)
 
 ---
 
