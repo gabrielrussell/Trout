@@ -39,6 +39,13 @@ This architectural decision ensures long-term asset accessibility and creates a 
 - Each palette slot can have separate left/right colors for asymmetric coloring
 - Left color lookup: walk up tree for left value; if not found, walk up tree for right value
 
+**Stroke and Fill Support**:
+- Each path can have both stroke (outline) and fill (interior) colors
+- Stroke and fill reference palette slots independently
+- Stroke width configurable per path
+- Both stroke and fill respect the palette inheritance system
+- Either stroke or fill can be omitted (stroke-only or fill-only paths)
+
 ### Symmetry Model
 **Render-Time Bilateral Symmetry**:
 - Fixed vertical center line (not movable/rotatable)
@@ -141,6 +148,7 @@ The rendering process flows as:
 - **Global palette root**: A global palette exists at the root of the inheritance tree with no empty slots allowed (ensures all colors resolve eventually)
 - **Mixed coloring per component**: Each component can have some colors hard-coded (filled slots) and others inherited (empty slots)
 - **Tree-walk resolution**: Color lookup walks up parent chain until a filled slot is found
+- **Stroke and fill support**: Paths reference palette slots separately for stroke (outline) and fill (interior) colors
 - **Visualized in editor**: Palette inheritance is shown visually in the editor
 - **Example use**: Trousers with fixed blue fabric (filled slot) but handkerchief color from parent's hair color (empty slot)
 
@@ -409,8 +417,9 @@ Combining features may create emergent complexity:
 - 6a. Palette data structure (array of color slots, some empty)
 - 6b. Tree-walking color resolution algorithm
 - 6c. Global palette (root with no empties)
-- 6d. Palette editor UI
-- 6e. Inheritance visualization in editor
+- 6d. Stroke and fill color assignment (paths reference palette slots separately for stroke/fill)
+- 6e. Palette editor UI
+- 6f. Inheritance visualization in editor
 
 **Dependencies:**
 - Requires: Component tree (#5)
