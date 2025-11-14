@@ -185,6 +185,17 @@ The rendering process flows as:
 - **Offline capable**: Potentially works offline once loaded (Progressive Web App)
 - **Cross-platform**: Works on any device with a modern browser
 
+### 10. Negative Space Paths
+**Description:** Ability to create transparent cutouts within solid shapes by drawing negative space (subtractive) paths.
+
+**Key aspects:**
+- **Path subtraction**: Draw paths within a solid shape to create transparent holes
+- **Layered composition**: Multiple negative paths can be combined within a single shape
+- **Render-time processing**: Negative paths are applied during rendering (not in storage)
+- **Symmetry compatible**: Negative paths respect the same bilateral symmetry as positive paths
+- **Use cases**: Creating hollow shapes, windows, complex silhouettes, and decorative cutouts
+- **Boolean operation**: Essentially a subtract/difference operation in traditional vector graphics terms
+
 ---
 
 ## Design Decisions
@@ -288,15 +299,16 @@ Combining features may create emergent complexity:
 ### Medium Priority
 4. **Triangular Grid Snapping System** (#2)
 5. **Triangular Pixel Rendering** (#3)
-6. **Full Palette Inheritance** (advanced version of #6)
-7. **Left/Right Palette Variation** (#7)
+6. **Negative Space Paths** (#10)
+7. **Full Palette Inheritance** (advanced version of #6)
+8. **Left/Right Palette Variation** (#7)
 
 ### Nice-to-Have
-8. **Faux 3D Lighting** (#4)
+9. **Faux 3D Lighting** (#4)
 
 ### Infrastructure (Will Get Done)
-9. **TypeScript Rendering Library** (#8)
-10. **Client-Side Web Application** (#9)
+10. **TypeScript Rendering Library** (#8)
+11. **Client-Side Web Application** (#9)
 
 ---
 
@@ -424,6 +436,23 @@ Combining features may create emergent complexity:
 
 **Priority:** INFRASTRUCTURE (foundational - will get done)
 
+### Feature 10: Negative Space Paths
+**Sub-features:**
+- 10a. Data model for negative vs. positive paths (path type flag)
+- 10b. Rendering engine path subtraction (boolean difference operation)
+- 10c. Editor UI for toggling path type (positive/negative)
+- 10d. Visual differentiation in editor (show negative paths distinctly)
+- 10e. Symmetry application to negative paths
+- 10f. Multiple negative path composition within single shape
+
+**Dependencies:**
+- Requires: Basic vector path rendering (#8)
+- Requires: Symmetry system (#1) for consistent mirroring
+- Works with: All shape-based features
+- Independent of: Grid system, palette system, component system
+
+**Priority:** MEDIUM (enhances visual possibilities without adding complexity)
+
 ---
 
 ## Dependency Graph
@@ -438,7 +467,8 @@ Basic Rendering:
        ↓
        ├─→ [1. Symmetry] ← can be added early, relatively simple
        ├─→ [2. Tri Grid] ← editor-only, doesn't affect rendering
-       └─→ [3. Tri Pixels] ← rendering technique, independent
+       ├─→ [3. Tri Pixels] ← rendering technique, independent
+       └─→ [10. Negative Space] ← path subtraction, works with symmetry
 
 Component System:
   [5. Component Assembly]
