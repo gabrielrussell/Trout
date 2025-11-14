@@ -116,8 +116,8 @@ This document captures all architectural decisions and answers to implementation
 - Example: 64 grid units → 128 pixels = 2 pixels per grid unit
 
 **Rasterization:**
-- NOT option A (fill all touched trixels)
-- Between option B (center point) or C (anti-aliasing)
+- **Rejected:** Fill all trixels that the path touches (any coverage) - too broad
+- **Under consideration:** Either center-point sampling (fill trixels whose center the path contains) OR anti-aliasing/partial coverage
 - **DECISION DEFERRED** - will decide based on aesthetic testing
 
 **Stroke Rendering:**
@@ -155,8 +155,9 @@ This document captures all architectural decisions and answers to implementation
 - NOT rotating light around static asset
 
 **Gradient Application:**
-- Uniform gradient direction for all shapes (option A)
-- Top-to-bottom or similar, based on light direction
+- Uniform gradient direction for all shapes
+- Gradient follows light direction (e.g., if light from upper-left, gradient goes upper-left to lower-right)
+- **Rejected:** Per-shape orientation (where each shape's facing affects how light hits it)
 
 **Multi-shape Lighting:**
 - Z-order affects lighting
