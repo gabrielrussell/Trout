@@ -288,14 +288,15 @@ Combining features may create emergent complexity:
 ### Medium Priority
 4. **Triangular Grid Snapping System** (#2)
 5. **Triangular Pixel Rendering** (#3)
+6. **Full Palette Inheritance** (advanced version of #6)
+7. **Left/Right Palette Variation** (#7)
 
 ### Nice-to-Have
-6. **Faux 3D Lighting** (#4)
-7. **Full Palette Inheritance** (advanced version of #6)
-8. **Left/Right Palette Variation** (#7)
+8. **Faux 3D Lighting** (#4)
 
 ### Infrastructure (Will Get Done)
 9. **TypeScript Rendering Library** (#8)
+10. **Client-Side Web Application** (#9)
 
 ---
 
