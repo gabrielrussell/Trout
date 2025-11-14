@@ -36,7 +36,7 @@ This document captures all architectural decisions and answers to implementation
 
 **Rendering to Pixels:**
 - User specifies output size in pixels (e.g., "128 pixels wide")
-- System calculates: pixels-per-grid-unit = output_size / 64
+- System calculates: pixels-per-grid-unit = output_size / 64 ( assuming that the working area is set to 2^6 trixels )
 - All trixels scale proportionally
 - **Important:** Only one edge of triangular trixels aligns with square pixel grid
 - Other two angled edges require anti-aliasing/coverage calculation
@@ -90,6 +90,7 @@ This document captures all architectural decisions and answers to implementation
 
 **Snapping:**
 - Always on (no disable)
+- Effects both new path creation as well as poit movement
 - Power-of-2 grid level selector (2^0 through 2^6)
 
 **Zoom:**
