@@ -173,6 +173,19 @@ The rendering process flows as:
 
 ---
 
+### 9. Client-Side Web Application
+**Description:** Web-based HTML application that runs entirely in the browser with minimal or no server-side dependencies.
+
+**Key aspects:**
+- **Browser-based**: Entire editor runs in the browser (HTML/CSS/JavaScript/TypeScript)
+- **No server required**: All editing, rendering, and processing happens client-side
+- **Local file operations**: Uses browser APIs for file I/O (File System Access API, downloads, or local storage)
+- **Standalone deployment**: Can be hosted as static files on any web server or CDN
+- **Offline capable**: Potentially works offline once loaded (Progressive Web App)
+- **Cross-platform**: Works on any device with a modern browser
+
+---
+
 ## Design Decisions
 
 ### Scope & Philosophy
