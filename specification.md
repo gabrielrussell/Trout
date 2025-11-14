@@ -1,7 +1,8 @@
 # Trout Vector Asset Editor - Technical Specification
 
-**Version:** 1.0
+**Version:** 2.0
 **Date:** 2025-11-14
+**Last Updated:** 2025-11-14 (Post-Review)
 **Status:** Draft
 
 ## Table of Contents
@@ -152,10 +153,10 @@ interface ExportSettings {
 
 ```typescript
 interface Unit {
-  id: string;                   // Unique identifier
+  id: string;                   // Unique identifier (UUID)
   name: string;                 // Human-readable name
   shape: Shape;                 // The geometry (possibly empty)
-  palette: Palette;             // Palette for this unit
+  palettes: UnitPalettes;       // Left and right palettes for this unit
   children: Unit[];             // Child units (z-order: later = on top)
 }
 
@@ -165,39 +166,39 @@ interface Shape {
 
 interface Path {
   type: 'positive' | 'negative'; // Positive (fill) or negative (cutout)
-  points: Point[];              // Control points (stored un-mirrored)
+  points: Point[];              // Control points (stored un-mirrored, right side only)
   closed: boolean;              // Whether path is closed
   stroke?: StrokeStyle;         // Stroke definition (optional)
   fill?: FillStyle;             // Fill definition (optional)
 }
 
 interface Point {
-  x: number;                    // X coordinate (triangular grid units)
-  y: number;                    // Y coordinate (triangular grid units)
+  x: number;                    // X coordinate (triangular grid units, integer)
+  y: number;                    // Y coordinate (triangular grid units, integer)
 }
 
 interface StrokeStyle {
-  paletteSlot: number;          // Index into palette
-  width: number;                // Stroke width in pixels
-  leftOverride?: number;        // Optional: different slot for left side
+  paletteSlot: number;          // Index into palette (0-11)
+  width: number;                // Stroke width in grid units
 }
 
 interface FillStyle {
-  paletteSlot: number;          // Index into palette
-  leftOverride?: number;        // Optional: different slot for left side
+  paletteSlot: number;          // Index into palette (0-11)
 }
 ```
 
 #### Palette Schema
 
+**Important:** Each unit has TWO separate palettes (left and right), treated equally.
+
 ```typescript
-interface Palette {
-  slots: PaletteSlot[];         // Array of color slots
+interface UnitPalettes {
+  left: Palette;                // Left side palette (12 slots)
+  right: Palette;               // Right side palette (12 slots)
 }
 
-interface PaletteSlot {
-  right: Color | null;          // Right side color (null = inherit)
-  left?: Color | null;          // Left side color (null = use right, undefined = same as right)
+interface Palette {
+  slots: (Color | null)[];      // Array of 12 color slots (null = inherit from parent)
 }
 
 interface Color {
@@ -208,19 +209,55 @@ interface Color {
 }
 ```
 
+**Palette Resolution Rules:**
+- Each palette has exactly 12 slots (indexed 0-11)
+- Slot can be a Color or null (null = inherit from parent)
+- **Global palette requirement:** For each slot, at least ONE side (left OR right OR both) must be filled
+- **Lookup for left side:** Walk up tree checking left palette, then walk up tree checking right palette
+- **Lookup for right side:** Walk up tree checking right palette, then walk up tree checking left palette
+
 ### Coordinate System
 
 **Triangular Grid:**
-- Base unit: 1 grid unit
-- Grid spacing in pixels: Configurable (powers of 2: 2px, 4px, 8px, 16px, etc.)
-- Origin: Center of canvas
+- Regular triangular tessellation (alternating up/down triangles)
+- Base unit: 1 grid unit (abstract integer coordinates)
+- Origin: Center of canvas at (0, 0)
 - Axis orientation:
   - X-axis: Horizontal (right is positive)
   - Y-axis: Vertical (down is positive)
+- Grid spacing in editor: Selected power-of-2 level (2^0 through 2^6)
+  - This is SNAPPING precision, not canvas size
 
 **Hexagonal Canvas:**
+- **Fixed size:** 2^6 (64) grid units wide
 - Canvas boundary is a hexagon aligned to the triangular grid
-- Canvas size specified as the distance from center to vertex (in pixels)
+- Flat-topped orientation
+- **Never changes** - size is fixed per asset
+
+**Pixels vs Grid Units:**
+- Working file stores only grid coordinates (size-agnostic)
+- At render/export time: User specifies output size in pixels
+- System calculates: pixels-per-grid-unit = output_size / 64
+- All geometry scales proportionally
+
+**Grid Mathematics:**
+
+*1D Scaling:*
+- One 2^n trixel base = 2^n × 2^0 trixel bases
+
+*2D Area Scaling:*
+- One 2^n trixel = 4^n × 2^0 trixels (area quadruples per level)
+
+*Hexagon Composition:*
+- Regular hexagon = 6 equilateral triangles meeting at center
+- Hexagon width 2^n → each triangle side length = 2^(n-1)
+- Total 2^0 trixels in hexagon = 6 × (2^(n-1))² = 6 × 2^(2n-2)
+- Example: 64-unit hexagon contains 6 × 32² = 6,144 smallest trixels
+
+*Pixel Alignment Challenge:*
+- Triangular trixels rendered to square pixel grid
+- Only one edge aligns perfectly with pixels
+- Other two angled edges require anti-aliasing/coverage calculation
 
 ---
 
@@ -345,35 +382,53 @@ For each point P(x, y):
 
 ### Palette Resolution Algorithm
 
+**Dual-Palette Lookup:** Each unit has separate left and right palettes (12 slots each). Color resolution walks up the tree, checking the matching-side palette first, then the opposite-side palette as fallback.
+
 ```typescript
 function resolveColor(
   unit: Unit,
   paletteSlot: number,
-  side: 'left' | 'right'
+  side: 'left' | 'right',
+  globalPalettes: UnitPalettes
 ): Color {
-  // Look up slot in current unit's palette
-  let slot = unit.palette.slots[paletteSlot];
+  // Determine which palette to check first based on side
+  const primaryPalette = side === 'left' ? 'left' : 'right';
+  const fallbackPalette = side === 'left' ? 'right' : 'left';
 
-  // If slot exists and has color for this side, return it
-  if (slot) {
-    if (side === 'left' && slot.left !== undefined) {
-      if (slot.left !== null) return slot.left;
-      // If left is explicitly null, fall through to check right
-      if (slot.right !== null) return slot.right;
-    } else if (side === 'right' && slot.right !== null) {
-      return slot.right;
+  // Walk up tree checking primary side
+  let currentUnit: Unit | null = unit;
+  while (currentUnit) {
+    const color = currentUnit.palettes[primaryPalette].slots[paletteSlot];
+    if (color !== null) {
+      return color;
     }
+    currentUnit = currentUnit.parent;
   }
 
-  // If we reach here, walk up the tree
-  if (unit.parent) {
-    return resolveColor(unit.parent, paletteSlot, side);
+  // If not found, walk up tree checking fallback side
+  currentUnit = unit;
+  while (currentUnit) {
+    const color = currentUnit.palettes[fallbackPalette].slots[paletteSlot];
+    if (color !== null) {
+      return color;
+    }
+    currentUnit = currentUnit.parent;
   }
 
-  // If we reach root, use global palette (must have value)
-  return globalPalette.slots[paletteSlot].right!;
+  // If still not found, check global palette
+  // Global palette must have at least one side filled for each slot
+  const globalColor = globalPalettes[primaryPalette].slots[paletteSlot];
+  if (globalColor !== null) {
+    return globalColor;
+  }
+
+  return globalPalettes[fallbackPalette].slots[paletteSlot]!;
 }
 ```
+
+**Special Cases:**
+- **Geometry on symmetry axis (x=0):** Blend left and right colors (50/50 mix)
+- **Global palette validation:** Each slot must have at least one side (left OR right OR both) filled
 
 ### Negative Space Algorithm
 
@@ -503,8 +558,22 @@ export type ColorScheme = 'hexadic' | 'triadic' | 'complementary' | 'analogous';
 ```
 
 **Two Canvas System:**
-- **Editor Canvas:** Shows vector paths, control points, grid, symmetry line
-- **Preview Canvas:** Shows live rendered output using the rendering library
+- **Editor Canvas (Wireframe Only):**
+  - Shows ONLY black line outlines of paths
+  - Possibly gray fill to distinguish shapes
+  - NO colors displayed
+  - Grid always visible
+  - Symmetry line visible (x=0)
+  - Control points editable
+  - Pure geometric editing interface
+
+- **Preview Canvas (Fully Rendered):**
+  - Shows complete rendered output using rendering library
+  - ALL colors, lighting, effects applied
+  - Real-time updates as you edit
+  - Identical to export output
+  - Uses same rendering code as final export
+  - Can show child components in parent context (context-aware preview)
 
 ### Tools
 
@@ -525,18 +594,29 @@ export type ColorScheme = 'hexadic' | 'triadic' | 'complementary' | 'analogous';
 
 ### Panels
 
-#### 1. Component Tree Panel
-- Hierarchical view of units
-- Drag-and-drop reordering
-- Add/delete units
-- Name editing
+#### 1. Component/Unit Navigation
+**Project Level:**
+- Flat list of root-level units (components)
+- Each unit has a name
+- Actions: Edit (opens component editor), Delete
+- "Create New Component" button
+
+**Component Editor Level:**
+- Breadcrumb navigation (Root > Body > Arm)
+- Back button to return to parent
+- Shows current unit's:
+  - List of paths (selectable)
+  - List of child units (can navigate into)
+- "Add Path" and "Add Child Component" buttons
 
 #### 2. Palette Panel
-- Color slots (numbered)
-- Color picker for each slot
-- Empty slot indicator (inherits from parent)
-- Left/right color variants
-- Auto-generate button (nice-to-have)
+- **Dual palette UI:** Left palette (12 slots) and Right palette (12 slots)
+- Each slot numbered 0-11
+- For each slot:
+  - Color picker (RGB + alpha)
+  - "Empty/Inherit" checkbox (marks slot as null)
+- Global palette: At least one side must be filled per slot
+- Auto-generate button (Feature #12, nice-to-have)
 
 #### 3. Properties Panel
 - Selected path properties:
@@ -648,8 +728,14 @@ Based on the feature priorities defined in the brainstorming document, implement
 **Components:**
 1. Faux 3D lighting with rotations (#4)
 2. Automatic palette generation (#12)
+3. Undo/Redo system (#13)
 
 **Deliverable:** Complete tool with all planned features
+
+### Infrastructure Features (Will Get Done)
+These are foundational and will be implemented as needed:
+- **TypeScript Rendering Library (#8):** Core foundation used by editor and game projects
+- **Client-Side Web Application (#9):** Browser-based architecture with no server dependencies
 
 ---
 
@@ -659,44 +745,51 @@ Based on the feature priorities defined in the brainstorming document, implement
 
 **Document Level:**
 - Version must match supported version string
-- Global palette must have no empty slots (all slots must have right color defined)
-- All asset IDs must be unique within document
-- All unit IDs must be unique within asset
+- **Global palettes:** For each slot (0-11), at least ONE side (left OR right OR both) must have a color
+- All asset IDs must be unique within document (UUIDs)
+- All unit IDs must be unique within asset (UUIDs)
 
 **Asset Level:**
-- Canvas size must be positive integer
+- Canvas size fixed at 64 grid units (2^6)
 - Root unit must exist
-- Unit tree must be acyclic (no circular references)
+- **Unit tree must be acyclic:** NO circular references (Unit A cannot contain Unit B if Unit B contains Unit A, directly or through chain)
 
 **Unit Level:**
-- Palette slots can be sparse (missing indices inherit from parent)
-- If left color is specified, right color must also be specified
+- Each unit must have both left and right palettes (12 slots each)
+- Palette slots can be null (inherit from parent)
 - Empty slots (null values) are only valid in non-root units
 
 **Path Level:**
 - Paths must have at least 2 points
 - Closed paths must have at least 3 points
 - Either stroke or fill must be defined (or both)
-- Palette slot references must be valid integers
+- Palette slot references must be valid integers (0-11)
+- Control points must be integers (triangular grid units)
 
 **Palette Resolution:**
-- All palette slot references must eventually resolve to global palette
-- Global palette must have sufficient slots for all referenced indices
+- All palette slot references (0-11) must eventually resolve via inheritance
+- Global palettes ensure all slots can resolve (at least one side filled)
 
 ---
 
 ## Performance Considerations
 
+**Philosophy:** Simplicity over optimization. Implement straightforward solutions first, optimize only if actually slow.
+
 ### Rendering Performance
-- Target: 60 FPS for real-time preview
+- Target: Real-time preview updates
 - Use requestAnimationFrame for canvas updates
-- Debounce palette changes
-- Cache resolved palettes when possible
+- **No premature optimization:**
+  - Full redraws are acceptable
+  - No dirty-region tracking initially
+  - No component caching initially
+- Optimize later if performance issues arise
 
 ### Memory Management
-- Limit maximum asset count per document
-- Warn on large sprite sheets (>4096x4096)
-- Implement undo/redo with history limit
+- No hard limits on asset count or path count
+- If user creates 1000 paths and it's slow, that's acceptable
+- Warn on very large sprite sheets (>4096x4096) if needed
+- Undo/redo (Feature #13) would have history limit if implemented
 
 ### Browser Compatibility
 - Target: Modern browsers with Canvas API support
