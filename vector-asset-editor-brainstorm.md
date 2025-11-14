@@ -216,6 +216,18 @@ The rendering process flows as:
 - **Game engine integration**: Format compatible with TypeScript game engines (especially Excalibur.js)
 - **Reverse lookup**: Ability to trace rendered sprite back to its source vector definition
 
+### 12. Automatic Palette Generation
+**Description:** Tool to automatically generate a complete color palette from a single input color using color theory algorithms.
+
+**Key aspects:**
+- **Single color input**: User picks one base color
+- **Hexadic color scheme**: Generates palette using hexadic (6-color) harmony based on color wheel
+- **Shade variations**: Creates multiple shades/tints of each color (lighter and darker variants)
+- **Instant palette population**: Automatically fills palette slots with generated colors
+- **Customizable parameters**: Optional controls for saturation, brightness adjustments
+- **Quick start workflow**: Enables fast palette creation without manual color selection
+- **Override friendly**: Generated colors can be individually adjusted after generation
+
 ---
 
 ## Design Decisions
@@ -326,10 +338,11 @@ Combining features may create emergent complexity:
 
 ### Nice-to-Have
 10. **Faux 3D Lighting** (#4)
+11. **Automatic Palette Generation** (#12)
 
 ### Infrastructure (Will Get Done)
-11. **TypeScript Rendering Library** (#8)
-12. **Client-Side Web Application** (#9)
+12. **TypeScript Rendering Library** (#8)
+13. **Client-Side Web Application** (#9)
 
 ---
 
@@ -495,6 +508,23 @@ Combining features may create emergent complexity:
 
 **Priority:** MEDIUM (essential for game engine integration and workflow efficiency)
 
+### Feature 12: Automatic Palette Generation
+**Sub-features:**
+- 12a. Color theory algorithm implementation (hexadic harmony calculation)
+- 12b. Shade/tint generation (lighter and darker variants)
+- 12c. Single color picker UI for base color input
+- 12d. Palette population logic (auto-fill slots with generated colors)
+- 12e. Customization controls (saturation, brightness adjustments)
+- 12f. Preview of generated palette before applying
+- 12g. Integration with palette editor
+
+**Dependencies:**
+- Requires: Basic palette system (#6) to populate
+- Works with: Palette editor UI from Feature #6
+- Independent of: All other features (standalone tool)
+
+**Priority:** NICE-TO-HAVE (workflow enhancement, not essential)
+
 ---
 
 ## Dependency Graph
@@ -516,8 +546,8 @@ Component System:
   [5. Component Assembly]
        ↓
   [6. Palette Inheritance]
-       ↓
-  [7. L/R Palette Variation] ← requires both symmetry (#1) and palettes (#6)
+       ├─→ [12. Auto Palette Generation] ← workflow tool for palette creation
+       └─→ [7. L/R Palette Variation] ← requires both symmetry (#1) and palettes (#6)
 
 Export & Integration:
   [11. Sprite Sheet Metadata] ← depends on rendering (#8) + component system (#5)
