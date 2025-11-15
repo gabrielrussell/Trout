@@ -871,6 +871,46 @@ These are foundational and will be implemented as needed:
 - **May add later:** Potential future enhancement
 - **Focus:** Asset creation, not editing imported assets
 
+### Grid Scale Selection (Issue #9)
+- **Behavior:** Changing grid snapping level does NOT affect existing geometry
+- Points already placed remain at their exact positions
+- Grid level change only affects snapping for new points and point movement operations
+- Example: Switch from 2^2 to 2^4, existing points stay put
+
+### Tri-Pixel Output (Issue #10)
+- **No separate trixel size setting:** Whatever you drew is what renders
+- Drawing at grid level 2^3 means those triangles render as trixels
+- No "output trixel size" separate from construction grid
+- Geometry and rendering are unified
+
+### Sprite Sheet Layout (Issue #15)
+- **Grid layout:** Rows and columns
+- **Vertical (rows):** Different units/assets
+- **Horizontal (columns):** Rotation angles (0°, 60°, 120°, etc.)
+- Example: 3 units × 6 rotations = 18 frames in 3×6 grid
+
+### Component Organization (Issue #16)
+- **No special component library:** Just units in the tree
+- Any unit can be reused as a child of another unit
+- Components are organizational units, not a separate concept
+- Project file contains flat list of root units
+
+### Undo/Redo Granularity (Issue #17, if implementing Feature #13)
+- **Undoable operations:** Layer list changes
+  - Add/remove path from unit
+  - Add/remove child unit
+  - Move/reorder items in layer list
+- **NOT undoable:** Individual point operations
+  - Adding 3rd point to a path
+  - Moving individual points (these complete immediately)
+- **Granularity:** Unit editor "layer list" operations
+
+### Auto Palette Generation Parameters (Issue #18, if implementing Feature #12)
+- **Single input:** User selects one base color
+- **System generates:** Complete palette using hexadic harmony + shades/tints
+- **No other parameters required** for basic functionality
+- **Optional (nice-to-have):** Saturation/brightness adjustment sliders
+
 ---
 
 ## Future Considerations
