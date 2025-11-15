@@ -365,20 +365,49 @@ The rendering process follows this sequence:
 4. Export to PNG/WebP
 ```
 
+### Component Positioning Model
+
+**Fixed Center-Aligned Composition:**
+- ALL units are rendered at the same center point: (0, 0)
+- **No transforms:** No translation, rotation, scale, or positioning
+- **No bounding boxes:** No center calculation needed
+- **Implicit alignment:** All geometry shares the same origin
+- Components compose by overlaying at shared center
+
+**Rendering Order:**
+1. Each unit renders its own `shape.paths[]` at (0, 0)
+2. Then renders all `children[]` units (each also at (0, 0))
+3. Z-order determined by array position (later = on top)
+
+**Implications:**
+- To create complex shapes, draw paths in multiple units
+- To layer components, add them as children
+- All paths from all units overlay at same center
+- No need for "attachment points" or positioning systems
+
 ### Symmetry Algorithm
 
-**Storage:** Only right half of geometry stored
+**Half-Geometry Storage:**
+- Store ONLY the right half of geometry (x ≥ 0)
+- Points exactly on the symmetry axis (x = 0) are stored once
+- Left half (x < 0) is NOT stored - purely computed at render time
+- Left half is NOT editable in the editor (read-only visual)
+
 **Render-time application:**
 
 ```
-For each point P(x, y):
-  1. Render original point at (x, y)
-  2. Render mirrored point at (-x, y)
+For each point P(x, y) where x ≥ 0:
+  1. Render original point at (x, y)  [right side]
+  2. If x > 0: Render mirrored point at (-x, y)  [left side]
+  3. If x = 0: Point is on axis, render once only
 ```
 
 **Path rendering with symmetry:**
-- Close the path by connecting the mirrored points
+- Original points form right half of path
+- Mirrored points form left half of path
+- For closed paths: Connect mirrored points back to original points
 - Mirror follows the original path order in reverse
+- Result: Symmetric closed shape
 
 ### Palette Resolution Algorithm
 
@@ -794,6 +823,53 @@ These are foundational and will be implemented as needed:
 ### Browser Compatibility
 - Target: Modern browsers with Canvas API support
 - Minimum: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+
+---
+
+## Implementation Notes
+
+**Resolved Design Decisions** (from specification reviews):
+
+### Path Data Structure
+- Paths are arrays of integer points: `Point[]` where `Point = {x: number, y: number}`
+- Points are in triangular grid coordinate space
+- Paths use straight line segments only (no Bezier curves)
+- Closed paths connect last point back to first
+
+### Grid Coordinate System
+- **Coordinate space:** Simple Cartesian (x, y) on triangular grid lattice
+- **No special hex coordinates needed:** Standard integer grid works
+- **Triangular tessellation:** Regular pattern of alternating up/down triangles
+- **Pixel conversion:** At render time, multiply grid coordinates by (output_size / 64)
+
+### Z-Ordering Clarification
+- **Within a unit:** Paths in `shape.paths[]` are ordered (later = on top)
+- **Between units:** Children in `children[]` are ordered (later = on top)
+- **Render order:** All paths of current unit, THEN all children units
+- **Not interleaved:** Paths and child units are in separate arrays
+
+### Rotation Generation (Feature #4)
+- **6-way minimum:** 0°, 60°, 120°, 180°, 240°, 300°
+- **12-way option:** Every 30° for smoother rotation
+- **What rotates:** The geometry (asset facing different directions)
+- **Light stays fixed:** In world space (not rotating around asset)
+- **L/R colors:** Rotate WITH the asset (character-relative, not world-relative)
+
+### Negative Space Rendering (Feature #10)
+- **Algorithm:** Canvas2D `globalCompositeOperation = 'destination-out'`
+- **Order:** Render all positive paths first, then subtract negative paths
+- **Symmetry:** Negative paths also respect bilateral symmetry
+
+### File Format
+- **Format:** JSON (human-readable, version-control friendly)
+- **Extension:** .trout
+- **Encoding:** UTF-8
+- **IDs:** UUIDs for asset and unit identifiers
+
+### Import Support
+- **Not in v1.0:** No import of external formats (SVG, PNG, etc.)
+- **May add later:** Potential future enhancement
+- **Focus:** Asset creation, not editing imported assets
 
 ---
 
